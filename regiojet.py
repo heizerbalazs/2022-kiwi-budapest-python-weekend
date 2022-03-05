@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 import requests
 
-from cacheing import create_key, retrieve_dict, store_dict
+from caching import create_key, retrieve_dict, store_dict
 
 LOCATIONS_URL = 'https://brn-ybus-pubapi.sa.cz/restapi/consts/locations'
 
@@ -96,6 +96,7 @@ def search_paths(source, destination, departure, currency):
 
 
 if __name__ == '__main__':
+    start = datetime.now()
     source, destination, departure, currency = parse_args()
 
     key = create_key('heizer', source, destination, departure)
@@ -103,4 +104,7 @@ if __name__ == '__main__':
     if paths is None:
         paths = search_paths(source, destination, departure, currency)
         store_dict(key, paths)
-    print(json.dumps(paths, indent=4))
+
+    end = datetime.now()
+    # print(json.dumps(paths, indent=4))
+    print(end-start)
