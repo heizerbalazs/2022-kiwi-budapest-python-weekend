@@ -4,7 +4,7 @@ import json
 import requests
 
 from caching import create_key, retrieve_dict, store_dict
-
+import database
 LOCATIONS_URL = 'https://brn-ybus-pubapi.sa.cz/restapi/consts/locations'
 
 
@@ -95,16 +95,56 @@ def search_paths(source, destination, departure, currency):
     return paths
 
 
+def paths_to_journeys(paths):
+    journeys = list()
+    for path in paths:
+        journey = database.Journey(
+            source=path['source'],
+            destination=path['destination'],
+            departure_datetime=datetime.strptime(
+                path['departure_datetime'], "%Y-%m-%dT%H:%M:%S.%f%z"),
+            arrival_datetime=datetime.strptime(
+                path['arrival_datetime'], "%Y-%m-%dT%H:%M:%S.%f%z"),
+            carrier=path['carrier'],
+            vehicle_type=path['type'],
+            price=path['fare']['amount'],
+            currency=path['fare']['currency']
+        )
+        journeys.append(journey)
+    return journeys
+
+
 if __name__ == '__main__':
     start = datetime.now()
     source, destination, departure, currency = parse_args()
 
     key = create_key('heizer', source, destination, departure)
+    print("Try Cache")
     paths = retrieve_dict(key)
+
     if paths is None:
+        print("Try DB")
+        journeys = database.get_all_journeys()
+
+    if paths is None:
+        print("Scrape Web, and save to Cahche and DB")
         paths = search_paths(source, destination, departure, currency)
         store_dict(key, paths)
+        journeys = paths_to_journeys(paths)
+        database.save_journeys(journeys)
 
-    end = datetime.now()
-    # print(json.dumps(paths, indent=4))
-    print(end-start)
+    journeys = database.get_all_journeys()
+    for journey in journeys:
+        print(
+            "found jorney: "
+            f"{journey.source} - {journey.destination}"
+        )
+
+    # Look for path
+    # if its in redis use it
+    # elif its in db use that
+    # else scrape the web and store the results both iin redis and the db
+    # end = datetime.now()
+    # # print(json.dumps(paths, indent=4))
+    # print(end-start)
+    # print(type(paths[0]['departure_datetime']))
