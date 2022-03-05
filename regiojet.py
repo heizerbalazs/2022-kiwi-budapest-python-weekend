@@ -3,6 +3,8 @@ from datetime import datetime
 import json
 import requests
 
+from cacheing import create_key, retrieve_dict, store_dict
+
 LOCATIONS_URL = 'https://brn-ybus-pubapi.sa.cz/restapi/consts/locations'
 
 
@@ -71,8 +73,7 @@ def parse_response(response):
 def enrich_paths(paths, *args, **kwargs):
     currency = kwargs.pop('currency')
     for path in paths:
-        if 'currency' in kwargs:
-            path['fare']['currency'] = currency
+        path['fare']['currency'] = currency
         path.update(kwargs)
 
 
@@ -91,9 +92,15 @@ def search_paths(source, destination, departure, currency):
     paths = parse_response(response)
     enrich_paths(paths, source=source,
                  destination=destination, currency=currency)
-    print(json.dumps(paths, indent=4))
+    return paths
 
 
 if __name__ == '__main__':
     source, destination, departure, currency = parse_args()
-    search_paths(source, destination, departure, currency)
+
+    key = create_key('heizer', source, destination, departure)
+    paths = retrieve_dict(key)
+    if paths is None:
+        paths = search_paths(source, destination, departure, currency)
+        store_dict(key, paths)
+    print(json.dumps(paths, indent=4))

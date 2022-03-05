@@ -8,6 +8,8 @@ authors = ["Balazs Heizer <heizer.balazs@gmail.com>"]
 python = "^3.10"
 requests = "^2.27.1"
 pre-commit = "^2.17.0"
+redis = "^4.1.4"
+python-slugify = "^6.1.1"
 
 [tool.poetry.dev-dependencies]
 
