@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Sequence, Column, Integer, String, TEXT, FLOAT
+from sqlalchemy import Sequence, Column, Integer, String, TEXT, FLOAT, BigInteger
 import models
 Base = declarative_base()
 
@@ -24,9 +24,9 @@ class Journey(Base):
     # name of the table
     __tablename__ = f"journeys_{USER}"
     id = Column(Integer, primary_key=True)
-    source_id = Column(Integer)
+    source_id = Column(BigInteger)
     source = Column(TEXT)
-    destination_id = Column(Integer)
+    destination_id = Column(BigInteger)
     destination = Column(TEXT)
     departure_datetime = Column(TIMESTAMP)
     arrival_datetime = Column(TIMESTAMP)
@@ -69,10 +69,19 @@ def get_all_journeys():
     with Session(engine) as session:
         # Get all data available
         journeys = session.query(Journey).all()
-        if len(journeys) > 0:
-            return [models.Journey.from_orm(journey) for journey in journeys]
-        else:
-            return None
+        return convert_to_model(journeys)
+
+
+def get_journyes(source, destination, departure):
+    with Session(engine) as session:
+        journeys = session\
+            .query(Journey)\
+            .filter(Journey.source == source)\
+            .filter(Journey.destination == destination)\
+            .filter(Journey.departure_datetime >= departure)\
+            .all()
+
+        return convert_to_model(journeys)
 
 
 def save_journeys(journeys):
@@ -83,6 +92,12 @@ def save_journeys(journeys):
         # execute in the DB
         session.commit()
 
+
+def convert_to_model(journeys):
+    if len(journeys) > 0:
+        return [models.Journey.from_orm(journey) for journey in journeys]
+    else:
+        return None
 
 # if __name__ == '__main__':
 #     from sqlalchemy.orm import aliased

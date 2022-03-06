@@ -24,25 +24,32 @@ if __name__ == '__main__':
     start = datetime.now()
     source, destination, departure, currency = parse_args()
 
+    departure_datetime = datetime.strptime(departure, '%Y-%m-%d')
+
     key = caching.create_key('heizer', source, destination, departure)
     print("Try Cache")
+    key = caching.create_key(
+        'heizer', source, destination, departure)
     journeys = caching.get_journeys(key)
 
-    if journeys is None:
-        print("Try DB")
-        journeys = database.get_all_journeys()
+    if journeys is not None:
+        journeys = list(filter(lambda journey: (journey.source == source) and (
+            journey.destination == destination) and (journey.departure >= departure_datetime), journeys))
+        journeys = journeys if len(journeys) > 0 else None
+    else:
+        journeys = database.get_journyes(
+            source, destination, departure_datetime)
         caching.save_journeys(key, journeys)
 
     if journeys is None:
-        print("Scrape Web, and save to Cahche and DB")
         journeys = data_acqusition.search_paths(
             source, destination, departure, currency)
         caching.save_journeys(key, journeys)
 
-        journeys = [database.Journey(**journey.dict()) for journey in journeys]
-        database.save_journeys(journeys)
+        # journeys = [database.Journey(**journey.dict()) for journey in journeys]
+        database.save_journeys(
+            [database.Journey(**journey.dict()) for journey in journeys])
 
-    # journeys = database.get_all_journeys()
     for journey in journeys:
         print(
             "found jorney: "
